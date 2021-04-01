@@ -1,0 +1,6 @@
+pack: bgpfilterupdate
+enabled: true
+runner_type: orquesta
+name: bgpfilterupdate
+entry_point: workflows/bgpfilterupdate.yaml
+description: A stackstorm workflow to build an update periodically BGP prefix lists.

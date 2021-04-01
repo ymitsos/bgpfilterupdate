@@ -1,0 +1,29 @@
+version: 1.0
+tasks:
+  # [208, 207]
+  pauseExecution:
+    action: core.pause
+    input:
+      log_level: INFO
+      max_pause: 60
+      random: true
+    next:
+      # #1072c6
+      - do:
+          - uploadConfiguration
+  # [208, 320]
+  uploadConfiguration:
+    action: napalm.loadconfig
+    input:
+      method: replace
+      log_level: DEBUG
+      hostname: hostname
+      driver: junos
+      credentials: junos
+      config_file: <% item() %>
+      debug: true
+    with:
+      items: <% ctx().files %>
+      concurrency: 1
+input:
+  - files

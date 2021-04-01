@@ -1,0 +1,20 @@
+---
+ref: bgpfilterupdate
+name: BGP Filter Update
+description: BGP Filter Update pack
+keywords:
+  - networking
+  - automation
+  - BGP
+  - napalm
+  - juniper
+version: 0.0.1
+author: Yannis Mitsos
+email: yannis@mitsos.net
+email: info@stackstorm.com
+python_versions:
+  - "3"
+dependencies:
+  - core
+  - docker
+  - napalm

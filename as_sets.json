@@ -1,0 +1,11 @@
+{
+  "as_sets": [
+    {
+       "as_set": "AS-SET name",
+       "prefix_list_filter": "prefix list name",
+       "inet": "6 for IPv6 or 4 for IPv4",
+       "more_specific_routes_len": "check switch -Z of bgpq4",
+       "max_prefix_len": "check switch -m of bgpq4"
+    },
+  ]
+}

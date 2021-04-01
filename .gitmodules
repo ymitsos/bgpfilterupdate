@@ -1,0 +1,4 @@
+[submodule "actions/lib/irrd-legacy"]
+	path = actions/lib/irrd-legacy
+	url = https://github.com/vincentbernat/irrd-legacy.git
+	branch = blade/master

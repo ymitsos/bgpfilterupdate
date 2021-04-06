@@ -27,6 +27,8 @@ The workflow performs the following tasks:
 - Iterates over the as_sets macro list and dumps files using as name the `prefix_list_filter` value(s),
 - Loads the configuration file to the router using [NAPALM](https://napalm.readthedocs.io/en/latest/ "NAPALM") imposing some delay between uploads to eliminate potential hiccups in the routing process daemon.
 
+The workflow in also illustrated in the next image ![BGP filter update workflow](./Workflow.png) "BGP filter update workflow").
+
 ## Dependencies
 The workflow comes as a pack and depends on the availability of the following packs:
 - the core pack,

@@ -13,17 +13,17 @@ tasks:
   IRRDRunning:
     action: core.local
     input:
-      cmd: docker container inspect -f \{\{.State.Status\}\} irrd
+      cmd: if [ "$(docker inspect -f '\{\{.State.Running\}\}' irrd 2>/dev/null) = true" ]; then echo Running; else echo "Not running"; fi
       cwd: /tmp
     next:
-      - when: <% succeeded() %>
+      - when: <% result().stdout = "Running" %>
         # #629e47
         publish:
           - msg: IRRD container is running
         # #629e47
         do:
           - stopIRRD
-      - when: <% failed() %>
+      - when: <% result().stdout = "Not running" %>
         publish:
           - msg: "IRRD container is not running"
         # #d1583b
@@ -45,17 +45,17 @@ tasks:
   BGPQ4ImageExist:
     action: core.local
     input:
-      cmd: docker image inspect bgpq4-snapshot | grep Id
+      cmd: if [ -n "$(docker image inspect -f '\{\{.Id\}\}' bgpq4-snapshot 2>/dev/null)" ]; then echo "Exists"; else echo "Doesn't exist";fi
     next:
       # #d1583b
       - do:
           - BGPQ4ImageBuild
-        when: <% failed() %>
+        when: <% result().stdout = "Doesn't exist" %>
       # #629e47
       - do:
           - loadInputData
           
-        when: <% succeeded() %>
+        when: <% result().stdout = "Exists" %>
   # [897, 360]
   BGPQ4ImageBuild:
     action: docker.build_image

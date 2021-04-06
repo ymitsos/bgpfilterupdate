@@ -1,5 +1,5 @@
 # BGP filter update workflow using Stackstorm
-This repo contains a [Stackstorm](https://stackstorm.com "stackstorm") workflow that builds/updates BGP filters for a Juniper router. The process encompasses spinning up two containers; one of them runs a self hosted IRRd instance, mirroring the some routing registries, based on Vincent Bernard's excellent [work](https://vincent.bernat.ch/en/blog/2020-bgpq4-irrd-docker "work"), which is available in his [repository](https://github.com/vincentbernat/irrd-legacy/tree/blade/master "Github"), and the second container hosts the BGPQ4 executable that outputs prefix filter lists tailored by querying the local IRR database running in the former container.
+This repo contains a [Stackstorm](https://stackstorm.com "stackstorm") workflow that builds/updates BGP filters for a Juniper router. The process encompasses spinning up two containers; one of them runs a self hosted IRRd instance, mirroring the some routing registries, based on Vincent Bernard's excellent [work](https://vincent.bernat.ch/en/blog/2020-bgpq4-irrd-docker "work"), which is available in his [repository](https://github.com/vincentbernat/irrd-legacy/tree/blade/master "Github"), and the second container hosts the BGPQ4 executable that builds the prefix filter lists querying the local IRR database running in the former container.
 
 The rational behind this work is to demonstrate how such a pipeline may be compiled using off-the-shelf components and a workflow descriptive language. Another benefit arising from the usage of Stackstorm is the availability of triggers and sensors that may be used in the context of a complicated network automation project. Of course, the same result may be easily achieved with a programming language, or other automation tools.
 
@@ -7,7 +7,7 @@ The rational behind this work is to demonstrate how such a pipeline may be compi
 The workflow performs the following tasks:
 - Terminates the IRRD container if it runs,
 - Creates a docker network if doesn't exist,
-- Builds the IRRD container if it was built more than 24 hours and runs it,
+- Builds the IRRD container if it was built more than 24 hours ago and runs it,
 - Builds the BGPQ4 container,
 - Parses the config JSON file that describes how the prefix filter should be compiled and follows the following syntax:
 ```
@@ -25,9 +25,9 @@ The workflow performs the following tasks:
 }
 ```
 - Iterates over the as_sets macro list and dumps files using as name the `prefix_list_filter` value(s),
-- Loads the configuration file to the router using [NAPALM](https://napalm.readthedocs.io/en/latest/ "NAPALM") imposing some delay between uploads to eliminate potential hiccups in the routing process daemon.
+- Loads the configuration file to the router using [NAPALM](https://napalm.readthedocs.io/en/latest/ "NAPALM"). A random delay is imposed between uploads to eliminate potential hiccups in the routing process daemon.
 
-The workflow in also illustrated in the next image ![BGP filter update workflow](./Workflow.png "BGP filter update workflow").
+The workflow is also illustrated in the next image: ![BGP filter update workflow](./Workflow.png "BGP filter update workflow")
 
 ## Dependencies
 The workflow comes as a pack and depends on the availability of the following packs:
@@ -38,12 +38,11 @@ The workflow comes as a pack and depends on the availability of the following pa
 ## Installation
 Firstly and foremost, you need a running Stackstorm instance. The setup was tested using Vagrant; you may install it following the [official instructions](https://docs.stackstorm.com/install/vagrant.html "official instructions").
 - Install `jq` in the underlying OS,
-- Install the docker for the version of Ubuntu provided by Stackstorm. There is a plethora of guides out there,
-- Add the Stackstorm user (st2) in the docker group to allow using the docker,
-- Install the aforementioned packs (core is already there),
-- Download and install this pack, 
+- Install `docker`. There is a plethora of tutorials out there to follow,
+- Add the Stackstorm user (st2) in the docker group to allow using docker,
+- Download and install this pack, it will also install any dependent packs, 
 - Edit the `as_sets.json` file and modify it accordingly based on your needs, 
-- Make sure a user exists in your router with permissions allowing,  at least, to replace the route filter lists that you set in the `as_sets.json` file. Trailed below an example of the minimum permissions required under this class for a Juniper router:
+- Make sure a user exists in your router with permissions allowing,  at least, to replace the route filter lists that you defined in the `as_sets.json` file. Trailed below an example of the minimum permissions required under this class for a Juniper router:
 ```
 user@router# show system login class replace-class 
 permissions configure;

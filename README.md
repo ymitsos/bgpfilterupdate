@@ -40,7 +40,7 @@ Firstly and foremost, you need a running Stackstorm instance. The setup was test
 - Install `jq` in the underlying OS,
 - Install `docker`. There is a plethora of tutorials out there to follow,
 - Add the Stackstorm user (st2) in the docker group to allow using docker,
-- Download and install this pack, it will also install any dependent packs, 
+- Download and install this pack, alternatively you may install it without downloading by executing: `st2 pack install https://github.com/ymitsos/bgpfilterupdate` inside the VM, it will also install any dependent packs, 
 - Edit the `as_sets.json` file and modify it accordingly based on your needs, 
 - Make sure a user exists in your router with permissions allowing,  at least, to replace the route filter lists that you defined in the `as_sets.json` file. Trailed below an example of the minimum permissions required under this class for a Juniper router:
 ```

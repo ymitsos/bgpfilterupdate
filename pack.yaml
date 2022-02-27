@@ -8,7 +8,7 @@ keywords:
   - BGP
   - napalm
   - juniper
-version: 0.0.1
+version: 0.0.2
 author: Yannis Mitsos
 email: yannis@mitsos.net
 python_versions:

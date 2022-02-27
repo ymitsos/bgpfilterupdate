@@ -13,7 +13,7 @@ tasks:
   IRRDRunning:
     action: core.local
     input:
-      cmd: if [ "$(docker inspect -f '\{\{.State.Running\}\}' irrd 2>/dev/null) = true" ]; then echo Running; else echo "Not running"; fi
+      cmd: if [ "$(docker ps -q -f name=irrd)" ]; then echo Running ; else echo Not\ running; fi
       cwd: /tmp
     next:
       - when: <% result().stdout = "Running" %>
@@ -29,11 +29,11 @@ tasks:
         # #d1583b
         do:
           - dockerNetExist
-  # [191, 734]
+  # [185, 731]
   runIRRD:
     action: core.local
     input:
-      cmd: "/usr/bin/docker container run --rm --detach --publish=43:43 --network myNet --name irrd --hostname irrd irrd-snapshot && sleep 40s"
+      cmd: "/usr/bin/docker container run --rm --detach --publish=43:43 --network myNet --name irrd --hostname irrd irrd-snapshot && sleep 10s"
       cwd: /opt/stackstorm/packs/bgpfilterupdate/actions/lib/irrd-legacy
       timeout: 120
     next:
@@ -41,11 +41,11 @@ tasks:
       - do:
           - BGPQ4ImageExist
         when: <% succeeded() %>
-  # [803, 224]
+  # [808, 134]
   BGPQ4ImageExist:
     action: core.local
     input:
-      cmd: if [ -n "$(docker image inspect -f '\{\{.Id\}\}' bgpq4-snapshot 2>/dev/null)" ]; then echo "Exists"; else echo "Doesn't exist";fi
+      cmd: if [ -n "$(docker image inspect -f '\{\{.Id\}\}' bgpq4 2>/dev/null)" ]; then echo "Exists"; else echo "Doesn't exist";fi
     next:
       # #d1583b
       - do:
@@ -56,14 +56,15 @@ tasks:
           - loadInputData
           
         when: <% result().stdout = "Exists" %>
-  # [897, 360]
+    delay: 45
+  # [894, 269]
   BGPQ4ImageBuild:
     action: docker.build_image
     input:
       log_level: INFO
       dockerfile_path: /opt/stackstorm/packs/bgpfilterupdate/actions/lib/bgpq4-container
-      tag: bgpq4-snapshot
-      debug: false
+      tag: bgpq4
+      debug: true
       env: null
     next:
       # #1072c6
@@ -74,19 +75,23 @@ tasks:
   IRRDImageExist:
     action: core.local
     input:
-      cmd: "docker image inspect irrd-snapshot:latest | grep Id"
+      cmd: "if docker image inspect irrd-snapshot:latest >/dev/null 2>&1 | grep Id; then echo Available; else echo Not\ available; fi"
     next:
       # #629e47
       - do:
           - checkIfIRRDNeedsRebuild
-        when: <% succeeded() %>
+        when: <% result().stdout = "Available" %>
+        publish:
+          - msg: IRRD image exists
       # #d1583b
       - do:
           - IRRDImageBuild
           
-        when: <% failed() %>
+        when: <% result().stdout = "Not available" %>
+        publish:
+          - msg: IRRD image doesn't exist
           
-  # [1033, 458]
+  # [1030, 386]
   loadInputData:
     action: core.local
     input:
@@ -100,21 +105,21 @@ tasks:
         publish:
           - assets: <% result().stdout %>
         when: <% succeeded() %>
-  # [898, 660]
+  # [896, 605]
   executeBGPQ4:
     action: core.local
     input:
-      cmd: "\ndocker run --rm --network myNet bgpq4-snapshot bgpq4 -h irrd -<%item().inet%> -z -R <%item().more_specific_routes_len%> -m <%item().max_prefix_len%> -J -l <%item().prefix_list_filter%> <%item().as_set%> > <% ctx(directory) %>/<%item().prefix_list_filter%> && echo <% ctx(directory) %>/<%item().prefix_list_filter%>"
+      cmd: sleep 2s; docker run --rm --network myNet bgpq4 bgpq4 -h irrd -<%item().inet%> -z -R <%item().more_specific_routes_len%> -m <%item().max_prefix_len%> -J -l <%item().prefix_list_filter%> <%item().as_set%> > <% ctx(directory) %>/<%item().prefix_list_filter%> && echo <% ctx(directory) %>/<%item().prefix_list_filter%>
       cwd: /opt/stackstorm/packs/bgpfilterupdate/actions/lib/bgpq4-container
       kwarg_op: null
     with:
       items: <% ctx(assets).as_sets %>
     next:
-      # #1072c6
-      - do:
-          - uploadPrefixFilterLists
-        publish:
+      - publish:
           - files: <% result().stdout %>
+        # #1072c6
+        do:
+          - concatenateFiles
   # [317, 310]
   createDockerNetwork:
     action: core.local
@@ -125,21 +130,25 @@ tasks:
       - do:
           - IRRDImageExist
         when: <% succeeded() %>
-  # [190, 210]
+  # [189, 210]
   dockerNetExist:
     action: core.local
     input:
-      cmd: docker network inspect myNet | grep Id
+      cmd: if docker network ls | grep myNet >/dev/null 2>&1; then echo Available; else echo Not\ available; fi
     next:
       # #629e47
       - do:
           - IRRDImageExist
-        when: <% succeeded() %>
+        when: <% result().stdout = "Available" %>
+        publish:
+          - msg: myNet netowork is available
       # #d1583b
       - do:
           - createDockerNetwork
-        when: <% failed() %>
-  # [434, 636]
+        when: <% result().stdout = "Not available" %>
+        publish:
+          - msg: myNet netowork is not available
+  # [432, 635]
   IRRDImageBuild:
     action: core.local
     input:
@@ -151,9 +160,7 @@ tasks:
       - do:
           - runIRRD
         when: <% succeeded() %>
-      - do: 
-          - fail
-        when: <% failed %>
+      - when: <% failed %>
   # [191, 538]
   checkIfIRRDNeedsRebuild:
     action: core.local
@@ -177,7 +184,7 @@ tasks:
     next:
       - do:
           - dockerNetExist
-  # [898, 565]
+  # [896, 501]
   createDirectory:
     action: core.local
     input:
@@ -188,10 +195,24 @@ tasks:
           - executeBGPQ4
         publish:
           - directory: <% result().stdout %>
-  # [898, 755]
-  uploadPrefixFilterLists:
-    action: bgpfilterupdate.uploadconfig
-    with:
-      items: <% ctx().files %>
+  # [896, 703]
+  concatenateFiles:
+    action: core.local
     input:
-      files: <% item() %>
+      cwd: <% ctx(directory) %>
+      cmd: cat * > route-filter-list.config
+    next:
+      # #1072c6
+      - do:
+          - uploadConfiguration
+  # [896, 805]
+  uploadConfiguration:
+    action: napalm.loadconfig
+    input:
+      method: merge
+      log_level: DEBUG
+      hostname: hostname
+      driver: junos
+      credentials: junos
+      config_file: <% ctx(directory) %>/route-filter-list.config
+      debug: false
